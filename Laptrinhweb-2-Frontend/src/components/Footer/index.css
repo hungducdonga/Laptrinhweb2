@@ -1,0 +1,3 @@
+.li_menu {
+    @apply cursor-pointer font-medium text-slate-800 px-4 py-1 rounded-md border border-transparent hover:border hover:bg-slate-100
+}

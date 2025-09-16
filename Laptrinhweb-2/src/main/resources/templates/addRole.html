@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add company</title>
+    <!--  <link rel="stylesheet" href="../static/style.css">-->
+    <!--  <link rel="stylesheet" href="../static/css/addUser.css">-->
+
+    <link rel="stylesheet" th:href="@{/style.css}">
+    <link rel="stylesheet" th:href="@{/css/addUser.css}">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <p class="logo"><a href="#">User Information</a></p>
+        <ul class="navbar">
+            <li>
+                <a href="/role">Role list</a>
+            </li>
+        </ul>
+    </div>
+    <div class="content">
+        <h1 class="title">Add Role</h1>
+        <form class="form_control" th:action="@{/addRole}" th:object="${role}" method="POST">
+            <label class="form_label">
+                Role Name:
+                <input class="form_input" type="text" th:field="*{authority}"/>
+            </label>
+            <br/>
+            <input class="form_submit" type="submit" value="Create"/>
+        </form>
+    </div>
+</div>
+<a href="/user">Quay lại</a>
+</body>
+</html>

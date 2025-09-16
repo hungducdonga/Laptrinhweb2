@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <title>Company</title>
+  <!--    <link rel="stylesheet" href="../static/style.css">-->
+  <!--    <link rel="stylesheet" href="../static/css/user.css">-->
+
+  <link rel="stylesheet" th:href="@{/style.css}">
+  <link rel="stylesheet" th:href="@{/css/user.css}">
+  <link rel="stylesheet" th:href="@{/css/company.css}">
+  <style>
+    ul{
+      list-style: none;
+      margin-block-start: 0;
+      margin-block-end: 0;
+      margin-inline-start: 0;
+      margin-inline-end: 0;
+    }
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <p class="logo"><a href="#">User Information</a></p>
+    <ul class="navbar">
+      <li>
+        <a href="/addRole">Add Role</a>
+      </li>
+      <li>
+        <a href="/company">Company List</a>
+      </li>
+      <li>
+        <a href="/user">User List</a>
+      </li>
+      <li>
+        <a href="/logout">Logout</a>
+      </li>
+    </ul>
+  </div>
+  <div class="content">
+    <h1 class="title">Company List</h1>
+    <table>
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Role Name</th>
+        <th class="action">Action</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="rol : ${roles}">
+        <td th:text="${rol.id}"></td>
+        <td th:text="${rol.authority}"></td>
+        <td class="action">
+          <a th:href="@{/deleteCompany/{id}(id=${rol.id})}">
+            <img class="icon_action" th:src="@{/assets/delete.svg}" alt="">
+          </a>
+          <a th:href="@{/updateCompany/{id}(id=${rol.id})}">
+            <img class="icon_action" th:src="@{/assets/pencil.svg}" alt="">
+          </a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

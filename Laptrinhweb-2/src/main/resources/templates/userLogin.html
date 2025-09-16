@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <title>User Demo</title>
+  <link rel="stylesheet" href=".././static/style.css">
+  <link rel="stylesheet" href=".././static/css/user.css">
+  <link rel="stylesheet" href=".././static/css/addUser.css">
+
+  <link rel="stylesheet" th:href="@{/style.css}">
+  <link rel="stylesheet" th:href="@{/css/user.css}">
+  <link rel="stylesheet" th:href="@{/css/addUser.css}">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <p class="logo"><a href="#">User Information</a></p>
+  </div>
+  <div class="content">
+    <h1 class="title">Login Page</h1>
+    <form class="form_control" th:action="@{/user/login}" th:object="${user}" method="POST">
+      <label class="form_label">
+        Email:
+        <input class="form_input" type="email" name="email"/>
+      </label>
+      <br/>
+      <label class="form_label">
+        Password:
+        <input class="form_input" type="password" name="password"/>
+      </label>
+      <br/>
+      <input class="form_submit" type="submit" value="Sign-in"/>
+    </form>
+  </div>
+</div>
+</body>
+</html>
