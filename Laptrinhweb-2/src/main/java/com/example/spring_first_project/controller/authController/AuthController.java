@@ -24,51 +24,57 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * AuthController
- * - Quản lý các API liên quan đến xác thực và đăng ký người dùng
+ * --------------
+ * Quản lý API xác thực và đăng ký người dùng.
+ * Chức năng:
+ *   - Đăng ký tài khoản mới
+ *   - Đăng nhập & sinh JWT
+ *   - Sinh token (generateToken) cho client
  */
 @RestController
-@RequestMapping("/api") // Prefix chung cho tất cả endpoint trong controller này
+@RequestMapping("/api") // Mọi endpoint trong class này đều bắt đầu với "/api"
 public class AuthController {
 
     @Autowired
-    private UserService userService;                 // Service xử lý logic liên quan tới User
+    private UserService userService; // Xử lý logic liên quan đến User (DB, tạo user, lấy thông tin user…)
 
     @Autowired
-    private AuthenticationManager authenticationManager; // Quản lý xác thực Spring Security
+    private AuthenticationManager authenticationManager; // Dùng Spring Security để xác thực email & password
 
     @Autowired
-    private JwtService jwtService;                   // Service tạo và xác thực JWT token
+    private JwtService jwtService; // Tạo và kiểm tra tính hợp lệ của JWT
 
     /**
-     * API Đăng ký người dùng mới
+     * API: Đăng ký người dùng mới
      * URL: POST /api/auth/register
      */
     @PostMapping("/auth/register")
     public ResponseEntity<ApiResponse<UserDemo>> createUser(@RequestBody UserRegistrationApiDto userRegistrationApiDto) {
         try {
-            // Gọi service để lưu thông tin người dùng mới
+            // Gọi service để lưu người dùng mới vào DB
             UserDemo newUser = userService.saveUserWithApi(userRegistrationApiDto);
-            // Trả về phản hồi thành công
+            // Trả về JSON thành công
             return ResponseEntity.ok(new ApiResponse<>(200, "User just creation", newUser));
         } catch (UsernameNotFoundException e) {
-            // Trường hợp không tìm thấy username hoặc quyền truy cập bị từ chối
+            // Trường hợp không tìm thấy username hoặc vi phạm quyền
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(403, "Access Denied", null));
         } catch (Exception e) {
-            // Lỗi hệ thống khác
+            // Các lỗi khác: DB, runtime…
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(500, "An error occurred", null));
         }
     }
 
     /**
-     * API Đăng nhập để lấy JWT token
+     * API: Đăng nhập để lấy JWT token
      * URL: POST /api/auth/login
+     * Input: email & password
      */
     @PostMapping("/auth/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody UserLoginDto userLoginDto) {
         try {
-            // Xác thực thông tin email & password
+            // Xác thực tài khoản bằng AuthenticationManager
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             userLoginDto.getEmail(),
@@ -76,44 +82,48 @@ public class AuthController {
                     )
             );
 
-            // Nếu xác thực thành công
             if (authentication.isAuthenticated()) {
-                // Lấy thông tin người dùng từ DB
+                // Lấy thông tin người dùng (UserDetails) từ DB
                 UserDetails userDetails = userService.loadUserByUsername(userLoginDto.getEmail());
-                // Lấy danh sách quyền (ROLE_USER, ROLE_ADMIN,...)
+                // Lấy danh sách quyền (ví dụ: ROLE_USER, ROLE_ADMIN)
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                    System.out.println(grantedAuthority.getAuthority()); // Log ra console quyền của user
-                    // Sinh JWT token và trả về cho client
+                    System.out.println(grantedAuthority.getAuthority()); // Log quyền ra console
+                    // Tạo JWT token và trả về cho client
                     return ResponseEntity.ok(new ApiResponse<>(
                             200,
                             "Generated token successful",
                             userService.login(
                                     userLoginDto,
-                                    jwtService.generateToken(userLoginDto.getEmail(), grantedAuthority.getAuthority())
-                            )));
+                                    jwtService.generateToken(
+                                            userLoginDto.getEmail(),
+                                            grantedAuthority.getAuthority()
+                                    )
+                            )
+                    ));
                 }
             }
-            // Nếu thông tin sai -> ném exception
+            // Nếu xác thực thất bại
             throw new BadCredentialsException("Bad credentials");
         } catch (BadCredentialsException e) {
-            // Trả về lỗi 403 khi username hoặc password sai
+            // Sai email hoặc password
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(403, "Access Denied because invalid username", null));
         } catch (Exception e) {
-            // Lỗi khác (server, DB,…)
+            // Lỗi hệ thống
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(500, "An error occurred", null));
         }
     }
 
     /**
-     * API Sinh token sau khi xác thực (tương tự login, có thể tách riêng khi cần)
+     * API: Sinh token sau khi xác thực (tương tự login)
      * URL: POST /api/auth/generateToken
+     * Input: email & password
      */
     @PostMapping("/auth/generateToken")
     public ResponseEntity<ApiResponse<LoginResponse>> authenticateAndGetToken(@RequestBody UserLoginDto authRequest) {
         try {
-            // Xác thực email & password
+            // Xác thực người dùng
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             authRequest.getEmail(),
@@ -122,24 +132,26 @@ public class AuthController {
             );
 
             if (authentication.isAuthenticated()) {
-                // Lấy thông tin người dùng từ DB
                 UserDetails userDetails = userService.loadUserByUsername(authRequest.getEmail());
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                     System.out.println(grantedAuthority.getAuthority());
-                    // Sinh token và trả về
+                    // Tạo và trả về JWT token
                     return ResponseEntity.ok(new ApiResponse<>(
                             200,
                             "Generated token successful",
                             userService.login(
                                     authRequest,
-                                    jwtService.generateToken(authRequest.getEmail(), grantedAuthority.getAuthority())
-                            )));
+                                    jwtService.generateToken(
+                                            authRequest.getEmail(),
+                                            grantedAuthority.getAuthority()
+                                    )
+                            )
+                    ));
                 }
             }
-            // Nếu thông tin sai
             throw new BadCredentialsException("Bad credentials");
         } catch (BadCredentialsException e) {
-            // Sai thông tin đăng nhập
+            // Đăng nhập sai thông tin
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(403, "Access Denied", null));
         }

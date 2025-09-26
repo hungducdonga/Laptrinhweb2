@@ -16,23 +16,33 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // Đánh dấu đây là một Spring Bean, tự động được Spring quét và đăng ký
+/**
+ * JwtAuthFilter
+ * ----------------------------
+ * Filter bảo mật cho ứng dụng Spring Security, chạy **một lần cho mỗi request**.
+ * Chức năng chính:
+ *   - Kiểm tra header Authorization để lấy JWT token.
+ *   - Giải mã token để lấy username.
+ *   - Kiểm tra tính hợp lệ của token (hết hạn, chữ ký…).
+ *   - Nếu hợp lệ, tạo Authentication và lưu vào SecurityContext.
+ */
+@Component  // Đăng ký Bean, Spring Boot tự quét và kích hoạt filter
 public class JwtAuthFilter extends OncePerRequestFilter {
-    // Lớp filter này chạy **một lần cho mỗi request** để kiểm tra và xác thực JWT
 
+    // Service để load thông tin User từ DB
     @Autowired
-    private UserServiceImpl userDetailsService; // Service để load thông tin user từ DB
+    private UserServiceImpl userDetailsService;
 
+    // Service xử lý việc tạo/giải mã/kiểm tra JWT
     @Autowired
-    private JwtService jwtService; // Service xử lý việc tạo/giải mã/kiểm tra JWT
+    private JwtService jwtService;
 
     /**
-     * Hàm chính của filter – được Spring Security gọi cho mỗi request.
-     * Nhiệm vụ:
-     * 1. Lấy JWT token từ header Authorization.
-     * 2. Giải mã token để lấy username.
-     * 3. Kiểm tra tính hợp lệ của token.
-     * 4. Nếu hợp lệ -> set thông tin xác thực vào SecurityContextHolder.
+     * Phương thức chính của filter, được gọi tự động cho mỗi request.
+     *
+     * @param request  HTTP request của client
+     * @param response HTTP response trả về
+     * @param filterChain chuỗi filter tiếp theo
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,50 +50,54 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Lấy giá trị của header Authorization từ request
+        // 1️⃣ Lấy header Authorization (nếu có)
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
 
-        // Kiểm tra header có tồn tại và bắt đầu bằng "Bearer "
-        // Format chuẩn: Authorization: Bearer <jwt-token>
+        // 2️⃣ Kiểm tra header có định dạng "Bearer <token>"
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7); // Cắt bỏ chuỗi "Bearer " để lấy token
-            username = jwtService.extractUsername(token); // Giải mã token để lấy username
+            // Cắt bỏ tiền tố "Bearer " để lấy chuỗi JWT token
+            token = authHeader.substring(7);
+            // Giải mã token để lấy username
+            username = jwtService.extractUsername(token);
         }
 
-        // Nếu đã có token và username và hiện tại chưa có Authentication trong SecurityContext
+        // 3️⃣ Nếu đã lấy được token & username và chưa có Authentication trong context
         if (token != null
                 && username != null
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            // Lấy thông tin UserDetails từ DB (hoặc nguồn khác) thông qua username
+            // Lấy thông tin user từ DB
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            // Xác thực token (chữ ký, thời gian hết hạn, v.v.)
+            // 4️⃣ Kiểm tra tính hợp lệ của token (chữ ký, thời gian hết hạn,…)
             if (jwtService.validateToken(token, userDetails)) {
-                // Tạo đối tượng Authentication cho Spring Security
+
+                // Tạo Authentication chứa thông tin user và quyền (authorities)
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,       // Principal: thông tin user
-                                null,              // Credentials: không cần password
-                                userDetails.getAuthorities() // Danh sách quyền (roles)
+                                userDetails,
+                                null,  // Không cần mật khẩu
+                                userDetails.getAuthorities()
                         );
 
-                // Gắn thông tin request hiện tại vào authToken (IP, session, …)
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // Gắn thêm thông tin request (IP, session) vào token
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
-                // Lưu Authentication vào SecurityContext để Spring Security biết user đã được xác thực
+                // 5️⃣ Lưu Authentication vào SecurityContext
+                // -> Spring Security hiểu rằng user này đã được xác thực
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                // Log ra console (tùy mục đích debug)
-                System.out.println("User " + authToken + " is authenticated.");
-                System.out.println("User " + userDetails + " is authenticated.");
-                System.out.println("User " + userDetails.getAuthorities() + " is authenticated.");
+                // Log debug (tuỳ chọn)
+                System.out.println("User authenticated: " + userDetails.getUsername());
+                System.out.println("Authorities: " + userDetails.getAuthorities());
             }
         }
 
-        // Tiếp tục truyền request/response xuống các filter hoặc controller tiếp theo
+        // 6️⃣ Tiếp tục chuỗi filter/controller khác
         filterChain.doFilter(request, response);
     }
 }
