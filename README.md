@@ -14,5 +14,9 @@ npm run dev
 
 docker compose up --build -d
 
+docker build -t myapp-frontend .
+
+docker build -t myapp-backend .
+
 
 
