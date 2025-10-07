@@ -6,6 +6,12 @@ mvn clean install
 
 mvn spring-boot:run
 
+# Chạy frontend
+
+npm install
+
+npm run dev
+
 # Chạy Docker
 
 docker compose up --build
