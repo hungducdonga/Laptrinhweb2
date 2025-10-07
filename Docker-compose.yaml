@@ -1,0 +1,16 @@
+version: "3.9"   # Phiên bản cấu hình docker-compose
+
+services:
+  backend:
+    build: ./Laptrinhweb-2        # Thư mục chứa Dockerfile backend (Spring Boot)
+    ports:
+      - "8080:8080"               # Map port 8080 ngoài máy -> 8080 trong container
+      # => Truy cập backend qua http://localhost:8080
+
+  frontend:
+    build: ./Laptrinhweb-2-Frontend  # Thư mục chứa Dockerfile frontend (React)
+    ports:
+      - "4000:4000"                 # Map port 4000 ngoài máy -> 4000 trong container
+      # => Truy cập frontend qua http://localhost:4000
+    depends_on:
+      - backend                     # Đảm bảo backend start trước frontend

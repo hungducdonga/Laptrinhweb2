@@ -1,32 +1,33 @@
-# Build stage
+# ================== STAGE 1: Build React app ==================
 FROM node:18 AS build
 
+# Đặt thư mục làm việc trong container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the container
+# Copy file khai báo dependencies
 COPY package*.json ./
 
-# Install dependencies
+# Cài đặt dependencies (node_modules)
 RUN npm install
 
-# Copy the rest of the application code
+# Copy toàn bộ source code vào container
 COPY . .
 
-# Build the React app
+# Build ứng dụng React thành static files (output nằm trong /build)
 RUN npm run build
 
-# Serve stage
-# FROM nginx:1.25.1
 
-# # Copy the custom nginx.conf file to the container
-# COPY .docker/nginx.conf /etc/nginx/nginx.conf
+# ================== STAGE 2: Serve React app ==================
+# 👉 Có 2 lựa chọn: DEV (npm start) hoặc PROD (Nginx)
 
-# # Copy the built React app from the build stage to the nginx container
-# COPY --from=build /dist /usr/share/nginx/html
-
-# # Expose port 80
+# ---------------- DEV mode (npm start) ----------------
+# Chỉ dùng khi phát triển (hot reload)
 EXPOSE 4000
-
-# Start Nginx
-# CMD ["nginx", "-g", "daemon off;"]
 CMD ["npm", "run", "dev"]
+
+# ---------------- PROD mode (Nginx) ----------------
+# Uncomment nếu bạn muốn build production
+# FROM nginx:1.25.1
+# COPY --from=build /app/build /usr/share/nginx/html
+# EXPOSE 80
+# CMD ["nginx", "-g", "daemon off;"]

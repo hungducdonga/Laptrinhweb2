@@ -1,36 +1,32 @@
-# Use the official Maven image as the base image
+# ================== STAGE 1: Build jar ==================
+# Sử dụng image Maven có sẵn JDK 17 để build source code
 FROM maven:3.8.4-openjdk-17 AS build
 
-# Set the working directory
+# Đặt thư mục làm việc trong container
 WORKDIR /app
 
-# Copy the pom.xml and any other necessary configuration files
-COPY ./pom.xml /app
-COPY ./src /app/src
+# Copy file pom.xml vào container để Maven tải dependency trước
+COPY pom.xml .
 
-# Build the application
-RUN mvn clean package -Dmaven.test.skip=true
+# Copy thư mục src (chứa code Java) vào container
+COPY src ./src
 
-# Create a new image for running the application
+# Build ứng dụng, bỏ qua test (để nhanh hơn)
+RUN mvn clean package -DskipTests
+
+
+# ================== STAGE 2: Run jar ==================
+# Sử dụng image JDK 17 nhẹ hơn để chạy ứng dụng
 FROM openjdk:17-jdk
 
-# Set the working directory
+# Đặt thư mục làm việc
 WORKDIR /app
 
-# Copy the built JAR file from the previous stage
+# Copy file jar đã build từ stage 1 sang stage 2
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port on which the Spring Boot application will run
+# Expose port 8080 (nơi Spring Boot chạy)
 EXPOSE 8080
 
-# Command to run the application
-CMD ["java", "-jar", "app.jar"]
-# ============================================
-## Sử dụng image Java
-#FROM openjdk:17-jdk-alpine
-## Đặt thư mục làm việc
-#WORKDIR /app
-## Sao chép file JAR vào container
-#COPY target/your-project.jar app.jar
-## Chạy ứng dụng
-#CMD ["java", "-jar", "app.jar"]
+# Lệnh khởi chạy ứng dụng Spring Boot
+ENTRYPOINT ["java", "-jar", "app.jar"]
