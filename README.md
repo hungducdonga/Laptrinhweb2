@@ -1,12 +1,15 @@
-\# Build
+# Build
 
 mvn clean install
 
-
-
-\# Chạy project
+# Chạy project
 
 mvn spring-boot:run
+
+# Chạy Docker
+
+docker compose up --build
+
 
 
 
